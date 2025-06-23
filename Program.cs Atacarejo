@@ -1,0 +1,122 @@
+class Produto
+{
+    public string GTIN;
+    public string Descricao;
+    public double PrecoVarejo;
+    public double? PrecoAtacado;
+    public int? QtdeAtacado;
+
+    public Produto(string gtin, string descricao, double precoVarejo, double? precoAtacado, int? qtdeAtacado)
+    {
+        GTIN = gtin;
+        Descricao = descricao;
+        PrecoVarejo = precoVarejo;
+        PrecoAtacado = precoAtacado;
+        QtdeAtacado = qtdeAtacado;
+    }
+}
+
+class Venda
+{
+    public string GTIN;
+    public int Quantidade;
+
+    public Venda(string gtin, int quantidade)
+    {
+        GTIN = gtin;
+        Quantidade = quantidade;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        CultureInfo ci = new CultureInfo("pt-BR");
+        Console.WriteLine("--- Desconto no Atacado ---\n");
+
+       
+        var catalogo = new Dictionary<string, Produto>
+        {
+            ["7891024110348"] = new Produto("7891024110348", "SABONETE", 2.88, 2.51, 12),
+            ["7891048038017"] = new Produto("7891048038017", "CHÁ", 4.40, 4.37, 3),
+            ["7896066334509"] = new Produto("7896066334509", "TORRADA", 5.19, null, null),
+            ["7891700203142"] = new Produto("7891700203142", "ADES", 2.39, 2.38, 6),
+            ["7894321711263"] = new Produto("7894321711263", "TODDY", 9.79, null, null),
+            ["7896001250611"] = new Produto("7896001250611", "ADOÇANTE", 9.89, 9.10, 10),
+            ["7793306013029"] = new Produto("7793306013029", "CEREAL", 12.79, 12.35, 3),
+            ["7896004400914"] = new Produto("7896004400914", "COCO", 4.20, 4.05, 6),
+            ["7898080640017"] = new Produto("7898080640017", "LEITE", 6.99, 6.89, 12),
+            ["7891025301516"] = new Produto("7891025301516", "DANONINHO", 12.99, null, null),
+            ["7891030003115"] = new Produto("7891030003115", "CREME", 3.12, 3.09, 4),
+        };
+
+        
+        var vendas = new List<Venda>
+        {
+            new Venda("7891048038017", 1),
+            new Venda("7896004400914", 4),
+            new Venda("7891030003115", 1),
+            new Venda("7891024110348", 6),
+            new Venda("7898080640017", 24),
+            new Venda("7896004400914", 8),
+            new Venda("7891700203142", 8),
+            new Venda("7891048038017", 1),
+            new Venda("7793306013029", 3),
+            new Venda("7896066334509", 2),
+        };
+
+       
+        var totalPorProduto = new Dictionary<string, int>();
+        foreach (var v in vendas)
+        {
+            if (!totalPorProduto.ContainsKey(v.GTIN))
+                totalPorProduto[v.GTIN] = 0;
+            totalPorProduto[v.GTIN] += v.Quantidade;
+        }
+
+        double subtotal = 0;
+        double totalDesconto = 0;
+        var descontosDetalhados = new Dictionary<string, double>();
+
+        foreach (var item in totalPorProduto)
+        {
+            string gtin = item.Key;
+            int quantidade = item.Value;
+            Produto produto = catalogo[gtin];
+
+            double precoVarejo = produto.PrecoVarejo;
+            double valorTotal = quantidade * precoVarejo;
+            subtotal += valorTotal;
+
+            if (produto.PrecoAtacado.HasValue && produto.QtdeAtacado.HasValue)
+            {
+                int lotes = quantidade / produto.QtdeAtacado.Value;
+                int restante = quantidade % produto.QtdeAtacado.Value;
+
+                double precoAtacado = produto.PrecoAtacado.Value;
+                double valorComDesconto = (lotes * produto.QtdeAtacado.Value * precoAtacado) + (restante * precoVarejo);
+
+                double desconto = valorTotal - valorComDesconto;
+
+                if (desconto > 0.01)
+                {
+                    descontosDetalhados[gtin] = Math.Round(desconto, 2);
+                    totalDesconto += desconto;
+                }
+            }
+        }
+
+        
+        Console.WriteLine("Descontos:");
+        foreach (var d in descontosDetalhados)
+        {
+            Console.WriteLine($"{d.Key,-20} R$ {d.Value.ToString("0.00", ci)}");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"(+) Subtotal  =    R$ {subtotal.ToString("0.00", ci)}");
+        Console.WriteLine($"(-) Descontos =      R$ {totalDesconto.ToString("0.00", ci)}");
+        Console.WriteLine($"(=) Total     =    R$ {(subtotal - totalDesconto).ToString("0.00", ci)}");
+    }
+}
